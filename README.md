@@ -30,6 +30,12 @@ python manage.py runserver
 
 ```
 task_manager/
+├── backend/# Django-приложение
+│   ├── config/ # Django-проект
+│   │   ├── __init__.py
+│   │   ├── settings.py
+│   │   ├── urls.py
+│   │   └── asgi.py
 ├── .gitignore
 ├── .pre-commit-config.yaml # конфигурация хуков
 ├── pyproject.toml # конфигурация проекта
