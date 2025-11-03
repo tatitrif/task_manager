@@ -1,0 +1,7 @@
+[project]
+name = "task-manager"
+version = "0.1.0"
+description = "Task Manager App"
+readme = "README.md"
+authors = [{ name = "Tati Trif", email = "yatatitrif@yandex.com" }]
+requires-python = ">=3.12"
