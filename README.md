@@ -1,12 +1,30 @@
 # Task Manager
 
+Веб-приложение для управления задачами в команде.
+
+## Описание
+
+Этот проект представляет собой веб-приложение.
+
+## Технологии
+
+- **Backend**: Django
+
 ## Установка и запуск
 
-1. **Клонируйте репозиторий**:
-   ```bash
-   git clone https://github.com/tatitrif/task_manager.git
-   cd task_manager
-   ```
+```bash
+# клонируйте репозиторий
+git clone https://github.com/tatitrif/task_manager.git
+
+# перейдите в директорию приложения
+cd task_manager/backend
+
+# запустите миграцию (для создания бд)
+python manage.py migrate
+
+# запустите приложение
+python manage.py runserver
+```
 
 ## Структура проекта
 
