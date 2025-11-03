@@ -8,7 +8,7 @@
 
 ## Технологии
 
-- **Backend**: Django
+- **Backend**: Django, Django REST Framework
 
 ## Установка и запуск
 
@@ -51,10 +51,11 @@ task_manager/
 │   │   ├── urls.py
 │   │   └── views.py
 │   ├── .env
-│   └── manage.py
+│   ├── manage.py
+│   └── pyproject.toml # Конфигурация зависимостей для Django
 ├── .gitignore
-├── .pre-commit-config.yaml # конфигурация хуков
-├── pyproject.toml # конфигурация проекта
+├── .pre-commit-config.yaml # Конфигурация хуков
+├── pyproject.toml # Конфигурация проекта
 └── README.md # информация о проекте
 ```
 
