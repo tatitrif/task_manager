@@ -36,6 +36,8 @@ task_manager/
 │   │   ├── settings.py
 │   │   ├── urls.py
 │   │   └── asgi.py
+│   ├── .env
+│   └── manage.py
 ├── .gitignore
 ├── .pre-commit-config.yaml # конфигурация хуков
 ├── pyproject.toml # конфигурация проекта
