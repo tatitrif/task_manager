@@ -19,8 +19,14 @@ git clone https://github.com/tatitrif/task_manager.git
 # перейдите в директорию приложения
 cd task_manager/backend
 
+# создайте миграцию
+python manage.py makemigrations tasks
+
 # запустите миграцию (для создания бд)
 python manage.py migrate
+
+# создайте суперпользователя (администратора)
+python manage.py createsuperuser
 
 # запустите приложение
 python manage.py runserver
@@ -30,12 +36,20 @@ python manage.py runserver
 
 ```
 task_manager/
-├── backend/# Django-приложение
-│   ├── config/ # Django-проект
+├── backend/# Django-проект
+│   ├── config/ # конфиг Django-проекта
 │   │   ├── __init__.py
+│   │   ├── asgi.py
 │   │   ├── settings.py
+│   │   └── urls.py
+│   ├── tasks/ # Django-приложение
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── models.py
+│   │   ├── serializers.py
 │   │   ├── urls.py
-│   │   └── asgi.py
+│   │   └── views.py
 │   ├── .env
 │   └── manage.py
 ├── .gitignore
@@ -49,7 +63,6 @@ task_manager/
 Проект использует фреймворк .pre-commit-config.yaml для автоматической проверки кода, например, линтинг, форматирование или запуск тестов, перед отправкой изменений в репозиторий.
 
 ```bash
-
 # установить pre-commit на устройство
 pip install pre-commit==3.8.0
 
@@ -61,5 +74,4 @@ pre-commit run --all-files
 
 # выполнение коммита без pre-commit
 git commit --no-verify -m "<message>"
-
 ```

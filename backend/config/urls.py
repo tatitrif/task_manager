@@ -16,12 +16,13 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 
 from . import settings
 
 urlpatterns = [
     path(settings.ADMIN_URL, admin.site.urls),
+    path("api/", include("tasks.urls")),
 ]
 
 if settings.DEBUG:
