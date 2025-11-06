@@ -1,13 +1,11 @@
 [project]
 name = "task-manager"
 version = "0.1.0"
-description = "Backend Manager App"
+description = "Tg bot for Manager App"
 readme = "README.md"
 authors = [{ name = "Tati Trif", email = "yatatitrif@yandex.com" }]
 requires-python = ">=3.12"
 dependencies = [
-    "django>=5.2.7",
-    "djangorestframework>=3.16.1",
-    "itsdangerous>=2.2.0",
+    "aiogram>=3.22.0",
     "python-dotenv>=1.2.1",
 ]

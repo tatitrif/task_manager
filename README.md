@@ -4,59 +4,29 @@
 
 ## Описание
 
-Этот проект представляет собой веб-приложение.
+Проект реализует REST API для создания, назначения и отслеживания задач между пользователями. Поддерживает привязку Telegram-аккаунта для уведомлений и взаимодействия через бота.
 
 ## Технологии
 
 - **Backend**: Django, Django REST Framework
-
-## Установка и запуск
-
-```bash
-# клонируйте репозиторий
-git clone https://github.com/tatitrif/task_manager.git
-
-# перейдите в директорию приложения
-cd task_manager/backend
-
-# создайте миграцию
-python manage.py makemigrations tasks
-
-# запустите миграцию (для создания бд)
-python manage.py migrate
-
-# создайте суперпользователя (администратора)
-python manage.py createsuperuser
-
-# запустите приложение
-python manage.py runserver
-```
+- **Аутентификация**: привязка Telegram-аккаунта через одноразовый токен
+- **Telegram-бот**: aiogram 3.x
+- **Управление зависимостями**: uv
+- **Качество кода**: pre-commit
 
 ## Структура проекта
 
 ```
+...
 task_manager/
-├── backend/# Django-проект
-│   ├── config/ # конфиг Django-проекта
-│   │   ├── __init__.py
-│   │   ├── asgi.py
-│   │   ├── settings.py
-│   │   └── urls.py
-│   ├── tasks/ # Django-приложение
-│   │   ├── __init__.py
-│   │   ├── admin.py
-│   │   ├── apps.py
-│   │   ├── models.py
-│   │   ├── serializers.py
-│   │   ├── urls.py
-│   │   └── views.py
-│   ├── .env
-│   ├── manage.py
-│   └── pyproject.toml # Конфигурация зависимостей для Django
-├── .gitignore
+├── backend/ # Django-приложение (API)
+├── bot/ # Telegram-бот
+├── .gitignore # определяет игнорируемые файлы и каталоги для Git
 ├── .pre-commit-config.yaml # Конфигурация хуков
 ├── pyproject.toml # Конфигурация проекта
 └── README.md # информация о проекте
+...
+
 ```
 
 ## Pre-commit
@@ -64,15 +34,17 @@ task_manager/
 Проект использует фреймворк .pre-commit-config.yaml для автоматической проверки кода, например, линтинг, форматирование или запуск тестов, перед отправкой изменений в репозиторий.
 
 ```bash
-# установить pre-commit на устройство
+
+# установить pre-commit
 pip install pre-commit==3.8.0
 
-# установить pre-commit в репозитории
+# активировать pre-commit в репозиторий
 pre-commit install
 
-# выполнение pre-commit без коммита
+# запустить pre-commit без коммита
 pre-commit run --all-files
 
-# выполнение коммита без pre-commit
+# сделать коммит, пропустив хуки (только в исключительных случаях)
 git commit --no-verify -m "<message>"
+
 ```
