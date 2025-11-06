@@ -24,19 +24,6 @@ class GenerateTgLinkView(APIView):
 
     def post(self, request):  # noqa
         user = request.user
-
-        # если профиль уже привязан — не генерируем новый токен (UX)
-        profile, _ = Profile.objects.get_or_create(user=user)
-        if profile.telegram_id:
-            return Response(
-                {
-                    "detail": "Account already linked to Telegram.",
-                    "telegram_id": str(profile.telegram_id),
-                },
-                status=status.HTTP_200_OK,
-            )
-
-        # генерируем токен и ссылку
         link_token = generate_telegram_token(user.pk)
         telegram_link = f"https://t.me/{TELEGRAM_BOT_NAME}?start={link_token}"
 
@@ -84,10 +71,7 @@ class ConfirmTgLinkView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        conflict = (
-            Profile.objects.filter(telegram_id=telegram_id).exclude(user=user).first()
-        )
-        if conflict:
+        if Profile.objects.filter(telegram_id=telegram_id).exclude(user=user).exists():
             return Response(
                 {"error": "This Telegram account is already linked to another user"},
                 status=status.HTTP_409_CONFLICT,

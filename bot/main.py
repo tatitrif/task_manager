@@ -42,7 +42,7 @@ dp = Dispatcher(storage=storage)
 
 async def confirm_telegram_link(code: str, message: types.Message):
     """Подтверждает привязку Telegram-аккаунта через API."""
-    if not re.fullmatch(r"^[A-Za-z0-9_.-]{8,128}$", code):
+    if not re.fullmatch(r"^[A-Za-z0-9]{32}$", code):
         await message.answer("❌ Некорректный формат токена.")
         return
 
