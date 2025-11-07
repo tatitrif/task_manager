@@ -6,43 +6,61 @@ import os
 import re
 
 import aiohttp
-from aiogram import Bot, Dispatcher, types
-from aiogram.filters import CommandStart, CommandObject
+from aiogram import Bot, Dispatcher, types, Router
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+from aiogram.filters import Command, CommandStart, CommandObject
+from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import BotCommand, BotCommandScopeDefault
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from dotenv import load_dotenv
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="[%(asctime)s] - %(levelname)s - %(filename)s:%(lineno)d - %(message)s",
-)
 logger = logging.getLogger(__name__)
 
 load_dotenv()
 
 BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
-if not BOT_TOKEN:
-    raise ValueError("TELEGRAM_TOKEN не задан в .env")
 
-API_AUTH_CONFIRM_URL = (
-    os.getenv(
-        "API_AUTH_CONFIRM_URL", "http://127.0.0.1:8000/api/auth/telegram/confirm/"
-    ).rstrip("/")
-    + "/"
-)
+API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000/api/")
+API_AUTH_CONFIRM_URL = API_BASE_URL.rstrip("/") + "/auth/telegram/confirm/"
+API_REFRESH_URL = API_BASE_URL.rstrip("/") + "/auth/token/refresh/"
+API_TASKS_URL = API_BASE_URL.rstrip("/") + "/tasks/"
 
 MSG_START = (
     "Привет! Чтобы привязать аккаунт, перейдите по ссылке из веб-приложения "
     "или отправьте сообщение вида /start <token>, token из веб-приложения"
 )
 
-storage = MemoryStorage()
-bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher(storage=storage)
+DEFAULT_COMMANDS = [
+    BotCommand(command="start", description="Старт"),
+]
+
+router = Router()
 
 
-async def confirm_telegram_link(code: str, message: types.Message):
+async def refresh_access_token(refresh_token: str) -> str | None:
+    """Обновляет access-токен через refresh."""
+    payload = {"refresh": refresh_token}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                API_REFRESH_URL,
+                json=payload,
+                timeout=10,
+            ) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    return data.get("access")
+                logger.warning(f"Token refresh failed: {resp.status}")
+    except Exception as e:
+        logger.exception(f"Token refresh error: {e}")
+    return
+
+
+async def confirm_telegram_link(code: str, message: types.Message, state: FSMContext):
     """Подтверждает привязку Telegram-аккаунта через API."""
-    if not re.fullmatch(r"^[A-Za-z0-9]{32}$", code):
+    if not code or not re.fullmatch(r"[0-9a-f]{32}", code, flags=re.IGNORECASE):
         await message.answer("❌ Некорректный формат токена.")
         return
 
@@ -52,61 +70,189 @@ async def confirm_telegram_link(code: str, message: types.Message):
             async with session.post(
                 API_AUTH_CONFIRM_URL, json=payload, timeout=10
             ) as resp:
+                logger.info(f"API response status: {resp.status}")
                 if not resp.headers.get("Content-Type", "").startswith(
                     "application/json"
                 ):
-                    logger.error(
-                        f"Non-JSON response from API: {await resp.text()[:200]}"
-                    )
-                    await message.answer(
-                        "❌ Сервер вернул ошибку. Обратитесь к администратору."
-                    )
+                    await message.answer("❌ Сервер вернул ошибку (не JSON).")
                     return
 
                 data = await resp.json()
-                logger.debug(f"Response from API: status={resp.status}, data={data}")
-                if resp.status == 200:
-                    await message.answer("✅ Ваш Telegram-аккаунт успешно привязан!")
-                elif resp.status == 400:
-                    await message.answer("❌ Неверный или устаревший токен.")
-                else:
-                    await message.answer(
-                        "❌ Не удалось привязать аккаунт. Повторите позже."
-                    )
+                if resp.status in {400, 409, 429}:
+                    await message.answer(data.get("error") or "Ошибка подтверждения.")
+                    return
+                if resp.status != 200:
+                    await message.answer(f"❌ Ошибка. Код {resp.status}")
+                    return
 
-    except TimeoutError:
-        logger.warning("Request to API timed out")
+                access = data.get("access")
+                refresh = data.get("refresh")
+                if not access or not refresh:
+                    await message.answer("❌ JWT токены не получены.")
+                    return
+
+                await state.update_data(access=access, refresh=refresh)
+                await message.answer(
+                    "✅ Аккаунт успешно привязан!\n\n"
+                    "Теперь вы можете использовать команду /tasks, чтобы посмотреть свои задачи."
+                )
+    except asyncio.exceptions.TimeoutError:
         await message.answer("⏰ Превышено время ожидания. Попробуйте позже.")
-    except aiohttp.ClientError as e:
-        logger.warning(f"HTTP client error: {e}")
+    except aiohttp.ClientError:
         await message.answer("⚠️ Ошибка подключения к серверу.")
     except Exception as e:
-        logger.exception(f"Unexpected error in confirm_telegram_link: {e}")
-        await message.answer("❌ Произошла внутренняя ошибка.")
+        logger.exception(e)
+        await message.answer("❌ Внутренняя ошибка.")
 
 
-@dp.message(CommandStart(deep_link=True))
-async def handle_start_link(message: types.Message, command: CommandObject):
-    """Обработка deep link /start <token>."""
-    code = command.args
+@router.message(CommandStart())
+async def handle_start(
+    message: types.Message, command: CommandObject, state: FSMContext
+):
+    """Обрабатывает /start и /start <token>."""
+    code = command.args or (
+        message.text.split(maxsplit=1)[1] if len(message.text.split()) > 1 else None
+    )
     if not code:
         await message.answer(MSG_START)
-    else:
-        await confirm_telegram_link(code, message)
+        return
+    await confirm_telegram_link(code, message, state)
 
 
-@dp.message(CommandStart())
-async def handle_start(message: types.Message):
-    """Обработка обычного /start <token>."""
-    parts = message.text.split()
-    if len(parts) >= 2:
-        await confirm_telegram_link(parts[1], message)
+async def fetch_tasks(access: str) -> list[dict] | None:
+    """Получает список задач по access токену."""
+    headers = {"Authorization": f"Bearer {access}"}
+    async with aiohttp.ClientSession() as session:
+        async with session.get(API_TASKS_URL, headers=headers, timeout=10) as resp:
+            if resp.status == 200:
+                return await resp.json()
+            elif resp.status in {401, 403}:
+                return
+            else:
+                logger.error(f"Error fetching tasks: {resp.status} {await resp.text()}")
+                return
+
+
+@router.message(Command("tasks"))
+async def tasks_list(message: types.Message, state: FSMContext):
+    """Отображает список задач пользователя."""
+    data = await state.get_data()
+    access, refresh = data.get("access"), data.get("refresh")
+
+    if not access:
+        await message.answer(
+            "❌ Аккаунт не привязан. Используйте /start <token> сначала."
+        )
+        return
+
+    tasks = await fetch_tasks(access)
+    if tasks is None and refresh:
+        # access просрочен — пробуем обновить
+        new_access = await refresh_access_token(refresh)
+        if new_access:
+            await state.update_data(access=new_access)
+            tasks = await fetch_tasks(new_access)
+
+    if tasks is None:
+        await message.answer("🔒 Авторизация истекла. Повторите /start <token>.")
+        return
+
+    if not tasks:
+        await message.answer("✅ У вас нет назначенных задач.")
+        return
+
+    text = "*Ваши задачи:*\n\n" + "\n".join(
+        f"{'✅' if t.get('is_completed') else '❌'} [{t.get('list_name', '—')}] #{t.get('id')}: {t.get('name')}"
+        for t in tasks
+    )
+    buttons = [
+        InlineKeyboardButton(text=t.get("name"), callback_data=f"done:{t.get('id')}")
+        for t in tasks
+        if not t.get("is_completed")
+    ]
+    kb = (
+        InlineKeyboardMarkup(
+            inline_keyboard=[buttons[i : i + 2] for i in range(0, len(buttons), 2)]  # noqa
+        )
+        if buttons
+        else None
+    )
+
+    await message.answer(text, reply_markup=kb)
+
+
+@router.callback_query(lambda c: c.data and c.data.startswith("done:"))
+async def complete_task(callback: types.CallbackQuery, state: FSMContext):
+    """Отмечает задачу выполненной."""
+    task_id = callback.data.split(":", 1)[1]
+    data = await state.get_data()
+    access, refresh = data.get("access"), data.get("refresh")
+
+    if not access:
+        await callback.message.answer(
+            "❌ Аккаунт не привязан. Используйте /start <token> сначала."
+        )
+        return
+
+    async def complete(access_token: str) -> bool:
+        headers = {"Authorization": f"Bearer {access_token}"}
+        async with aiohttp.ClientSession(headers=headers) as session:
+            async with session.post(
+                API_TASKS_URL + f"{task_id}/complete/", timeout=10
+            ) as resp:
+                return resp.status == 200
+
+    ok = await complete(access)
+    if not ok and refresh:
+        new_access = await refresh_access_token(refresh)
+        if new_access:
+            await state.update_data(access=new_access)
+            ok = await complete(new_access)
+
+    if ok:
+        await callback.message.edit_text("✅ Задача выполнена!")
     else:
-        await message.answer(MSG_START)
+        await callback.message.answer(
+            "⚠️ Ошибка при завершении задачи. Возможно, авторизация истекла."
+        )
+
+
+async def on_startup(bot: Bot):
+    """Вызывается при запуске бота."""
+    logging.info("Starting bot... Setting up default commands.")
+    await bot.set_my_commands(DEFAULT_COMMANDS, BotCommandScopeDefault())
+
+
+async def on_shutdown(bot: Bot):
+    """Вызывается при остановке бота."""
+    logging.info("Bot stopping... Removing the default commands.")
+    await bot.delete_my_commands(BotCommandScopeDefault())
 
 
 async def main():
     """Запуск бота."""
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="[%(asctime)s] - %(levelname)s - %(filename)s:%(lineno)d - %(message)s",
+    )
+
+    if not BOT_TOKEN:
+        raise ValueError("TELEGRAM_TOKEN не задан в .env")
+
+    bot = Bot(
+        token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN)
+    )
+    storage = MemoryStorage()
+    dp = Dispatcher(storage=storage)
+
+    # Регистрируем функции на события запуска и остановки бота
+    dp.startup.register(on_startup)
+    dp.shutdown.register(on_shutdown)
+
+    # Подключаем роутер
+    dp.include_router(router)
+
+    # Запускаем
     await dp.start_polling(bot)
 
 
