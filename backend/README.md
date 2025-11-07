@@ -32,6 +32,9 @@ cd task_manager/backend
 # настройте .env (пример в .env.example)
 cp .env.example .env
 
+# сгенерировать новый SECRET_KEY
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+
 # создайте миграцию
 uv run python manage.py makemigrations tasks accounts
 
