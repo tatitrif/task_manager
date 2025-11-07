@@ -10,30 +10,33 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-import os
 from datetime import timedelta
 from pathlib import Path
 
-from dotenv import load_dotenv
-
-load_dotenv()
+import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Инициализация django-environ и загрузка .env
+env = environ.Env()
+env.read_env(BASE_DIR / ".env")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = env("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DEBUG", False) == "True"
+DEBUG = env.bool("DEBUG", default=False)
 
 # Security admin url
-ADMIN_URL = os.getenv("ADMIN_URL", "admin/")
+ADMIN_URL = env("ADMIN_URL", default="admin/")
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1, 10.0.2.2, localhost").split(", ")
+ALLOWED_HOSTS = env.list(
+    "ALLOWED_HOSTS", default=["127.0.0.1", "10.0.2.2", "localhost"]
+)
 
 # Application definition
 DJANGO_APPS = [
@@ -89,12 +92,7 @@ ASGI_APPLICATION = "config.asgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}
+DATABASES = {"default": env.db(default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -117,9 +115,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = os.getenv("LANGUAGE_CODE", "ru-RU")
+LANGUAGE_CODE = env("LANGUAGE_CODE", default="ru-RU")
 
-TIME_ZONE = os.getenv("TIME_ZONE", "Europe/Moscow")
+TIME_ZONE = env("TIME_ZONE", default="Europe/Moscow")
 
 USE_I18N = True
 
@@ -157,8 +155,8 @@ LOGGING = {
     },
 }
 
-TELEGRAM_BOT_NAME = os.getenv("TELEGRAM_BOT_NAME")
-TELEGRAM_LINK_TOKEN_EXPIRE = os.getenv("TELEGRAM_TOKEN_EXPIRE", 600)
+TELEGRAM_BOT_NAME = env("TELEGRAM_BOT_NAME")
+TELEGRAM_LINK_TOKEN_EXPIRE = env.int("TELEGRAM_TOKEN_EXPIRE", default=600)
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -176,5 +174,5 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
-CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "http://127.0.0.1").split()
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["http://127.0.0.1"])
 CORS_ALLOW_ALL_ORIGINS = DEBUG
