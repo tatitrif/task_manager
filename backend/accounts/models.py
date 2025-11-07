@@ -11,3 +11,4 @@ class Profile(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     telegram_id = models.BigIntegerField(null=True, blank=True, unique=True)
+    jwt_refresh_expires = models.DateTimeField(null=True, blank=True)
