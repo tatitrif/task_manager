@@ -2,6 +2,7 @@
 
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -26,8 +27,13 @@ class ListTask(BaseModel):
         related_name="owned_lists",  # Владелец списка
     )
 
+    class Meta:  # noqa
+        indexes = [
+            models.Index(fields=["owner"]),  # Индекс для фильтрации по владельцу
+        ]
+
     def __str__(self):
-        """Вернуть название списка задач."""
+        """Возвращает строковое представление списка задач."""
         return self.name
 
 
@@ -47,10 +53,29 @@ class Task(BaseModel):
         ListTask,
         on_delete=models.CASCADE,
         related_name="tasks",  # Список, к которому относится задача
+        db_index=True,  # Индекс для ускорения фильтрации по списку
     )
     complete_before = models.DateTimeField(null=True, blank=True)
     is_completed = models.BooleanField(default=False)
 
+    class Meta:  # noqa
+        indexes = [
+            models.Index(fields=["list_tasks", "is_completed"]),
+            models.Index(fields=["assigned_to", "is_completed"]),
+        ]
+
     def __str__(self):
-        """Вернуть название задачи."""
+        """Возвращает строковое представление задачи."""
         return self.name
+
+    def is_active(self):
+        """Проверяет, не просрочена ли задача."""
+        return self.complete_before is None or self.complete_before >= timezone.now()
+
+    def mark_completed(self):
+        """Помечает задачу как выполненную."""
+        if not self.is_completed and self.is_active():
+            self.is_completed = True
+            self.save(update_fields=["is_completed"])
+            return True
+        return False

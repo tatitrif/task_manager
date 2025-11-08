@@ -5,7 +5,8 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-
+from django.db import transaction
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -26,7 +27,7 @@ REFRESH_TOKEN_LIFETIME = SIMPLE_JWT.get("REFRESH_TOKEN_LIFETIME", timedelta(days
 
 
 class GenerateTgLinkView(APIView):
-    """Генерирует одноразовую ссылку для привязки Telegram-аккаунта."""
+    """Представление генерации одноразовой ссылки и токена для Telegram-аккаунта."""
 
     permission_classes = [IsAuthenticated]
 
@@ -48,7 +49,7 @@ class GenerateTgLinkView(APIView):
 
 
 class ConfirmTgLinkView(APIView):
-    """Подтверждает и привязывает Telegram-аккаунт к профилю пользователя."""
+    """Представление для подтверждения и привязки Telegram-аккаунта к пользователю."""
 
     permission_classes = [AllowAny]
 
@@ -69,31 +70,27 @@ class ConfirmTgLinkView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        user = User.objects.filter(pk=user_id).first()
-        if not user:
-            return Response(
-                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+        # Проверка на существование user_id
+        user = get_object_or_404(User, pk=user_id)
 
+        # Проверка на существующий telegram_id у другого пользователя
         if Profile.objects.filter(telegram_id=telegram_id).exclude(user=user).exists():
             return Response(
                 {"error": "This Telegram account is already linked to another user"},
                 status=status.HTTP_409_CONFLICT,
             )
 
-        profile, _ = Profile.objects.get_or_create(user=user)
-        profile.telegram_id = telegram_id
-
         # Генерация JWT токенов
         refresh = RefreshToken.for_user(user)
         access = str(refresh.access_token)
+        refresh_exp = timezone.now() + REFRESH_TOKEN_LIFETIME
 
-        now = timezone.now()
-        refresh_exp = now + REFRESH_TOKEN_LIFETIME
-
-        # Сохраняем срок жизни refresh в БД
-        profile.jwt_refresh_expires = refresh_exp
-        profile.save(update_fields=["telegram_id", "jwt_refresh_expires"])
+        # Длоавление в Profile
+        with transaction.atomic():
+            profile, _ = Profile.objects.get_or_create(user=user)
+            profile.telegram_id = telegram_id
+            profile.jwt_refresh_expires = refresh_exp
+            profile.save(update_fields=["telegram_id", "jwt_refresh_expires"])
 
         # Логируем успешную привязку
         logger.info(f"User {user.pk} linked Telegram ID {telegram_id}")

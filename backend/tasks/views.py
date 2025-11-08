@@ -86,7 +86,7 @@ class TaskListView(generics.ListAPIView):
     def get_queryset(self):
         """Возвращает задачи, назначенные текущему пользователю."""
         return Task.objects.filter(assigned_to=self.request.user).select_related(
-            "assigned_to"
+            "list_tasks", "assigned_to"
         )
 
 
@@ -98,9 +98,26 @@ class TaskCompleteView(generics.GenericAPIView):
 
     def post(self, request, task_id):
         """Отмечает задачу как выполненную."""
-        task = get_object_or_404(Task, id=task_id, assigned_to=request.user)
-        task.is_completed = True
-        task.save(update_fields=["is_completed"])
+        task_qs = Task.objects.filter(assigned_to=request.user).select_related(
+            "assigned_to", "list_tasks"
+        )
+        task = get_object_or_404(task_qs, id=task_id)
+
+        # Проверяем активность
+        if not task.is_active():
+            return Response(
+                {"detail": "Task is expired and cannot be completed"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Отмечаем как выполненную, если ещё не завершена
+        if task.mark_completed():
+            return Response(
+                {"detail": "Task marked as complete"},
+                status=status.HTTP_200_OK,
+            )
+
         return Response(
-            {"detail": "Task marked as complete"}, status=status.HTTP_200_OK
+            {"detail": "Task already completed"},
+            status=status.HTTP_400_BAD_REQUEST,
         )
