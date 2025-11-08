@@ -172,6 +172,8 @@ REST_FRAMEWORK = {
         "anon": "10/minute",
         "user": "1000/day",
     },
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    "PAGE_SIZE": 20,
 }
 
 SIMPLE_JWT = {
