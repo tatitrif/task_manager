@@ -5,7 +5,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.cache import cache
+
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -19,8 +19,6 @@ from .utils import generate_telegram_token, verify_telegram_token
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
-
-CONFIRM_TG_LINK_COOLDOWN = getattr(settings, "CONFIRM_TG_LINK_COOLDOWN", 10)
 
 SIMPLE_JWT = getattr(settings, "SIMPLE_JWT", {})
 ACCESS_TOKEN_LIFETIME = SIMPLE_JWT.get("ACCESS_TOKEN_LIFETIME", timedelta(minutes=5))
@@ -64,13 +62,6 @@ class ConfirmTgLinkView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        cooldown_key = f"confirm_tg_cooldown:{telegram_id}"
-        if cache.get(cooldown_key):
-            return Response(
-                {"error": "Too many requests. Try again later."},
-                status=status.HTTP_429_TOO_MANY_REQUESTS,
-            )
-
         user_id = verify_telegram_token(code)
         if not user_id:
             return Response(
@@ -106,9 +97,6 @@ class ConfirmTgLinkView(APIView):
 
         # Логируем успешную привязку
         logger.info(f"User {user.pk} linked Telegram ID {telegram_id}")
-
-        # Антиспам
-        cache.set(cooldown_key, True, timeout=CONFIRM_TG_LINK_COOLDOWN)
 
         return Response(
             {
