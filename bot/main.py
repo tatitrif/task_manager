@@ -119,7 +119,7 @@ async def handle_start(
     await confirm_telegram_link(code, message, state)
 
 
-async def fetch_tasks(access: str) -> list[dict] | None:
+async def fetch_tasks(access: str) -> dict[list[dict]] | None:
     """Получает список задач по access токену."""
     headers = {"Authorization": f"Bearer {access}"}
     async with aiohttp.ClientSession() as session:
@@ -145,21 +145,27 @@ async def tasks_list(message: types.Message, state: FSMContext):
         )
         return
 
-    tasks = await fetch_tasks(access)
-    if tasks is None and refresh:
+    tasks_data = await fetch_tasks(access)
+    if tasks_data is None and refresh:
         # access просрочен — пробуем обновить
         new_access = await refresh_access_token(refresh)
         if new_access:
             await state.update_data(access=new_access)
-            tasks = await fetch_tasks(new_access)
+            tasks_data = await fetch_tasks(new_access)
 
-    if tasks is None:
+    logger.debug(f"tasks_data: {tasks_data}")
+
+    if tasks_data is None:
         await message.answer("🔒 Авторизация истекла. Повторите /start <token>.")
         return
+
+    tasks = tasks_data.get("results", [])
 
     if not tasks:
         await message.answer("✅ У вас нет назначенных задач.")
         return
+
+    logger.debug(f"tasks_list: {tasks_list}")
 
     text = "*Ваши задачи:*\n\n" + "\n".join(
         f"{'✅' if t.get('is_completed') else '❌'} [{t.get('list_name', '—')}] #{t.get('id')}: {t.get('name')}"
@@ -194,13 +200,20 @@ async def complete_task(callback: types.CallbackQuery, state: FSMContext):
         )
         return
 
+    url = f"{API_TASKS_URL}{task_id}/complete/"
+
     async def complete(access_token: str) -> bool:
         headers = {"Authorization": f"Bearer {access_token}"}
         async with aiohttp.ClientSession(headers=headers) as session:
-            async with session.post(
-                API_TASKS_URL + f"{task_id}/complete/", timeout=10
-            ) as resp:
-                return resp.status == 200
+            async with session.post(url, timeout=10) as resp:
+                if resp.status == 200:
+                    logger.info(f"✅ Task {task_id} marked as complete")
+                    return True
+
+                # читаем ответ для отладки
+                detail = (await resp.json()).get("detail", "Неизвестная ошибка")
+                logger.warning(f"⚠️ Не удалось завершить задачу {task_id}: {detail}")
+                return False
 
     ok = await complete(access)
     if not ok and refresh:
