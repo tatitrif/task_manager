@@ -12,7 +12,7 @@ class ListTaskSerializer(serializers.ModelSerializer):
 
     class Meta:  # noqa
         model = ListTask
-        fields = ["id", "name", "owner_username", "created_at"]
+        fields = ["id", "name", "owner_username", "updated_at"]
         read_only_fields = ["owner"]
 
 
@@ -31,7 +31,8 @@ class TaskSerializer(serializers.ModelSerializer):
             "list_name",
             "assignee_name",
             "assigned_to",
-            "is_completed",
             "complete_before",
-            "created_at",
+            "status",
+            "is_completed",
+            "updated_at",
         ]

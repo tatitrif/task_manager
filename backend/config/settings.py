@@ -52,8 +52,10 @@ THIRD_PARTY_APPS = [
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
+    "channels",
 ]
 LOCAL_APPS = [
+    "notify.apps.NotifyConfig",
     "accounts.apps.AccountsConfig",
     "tasks.apps.TasksConfig",
 ]
@@ -127,6 +129,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
+
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Default primary key field type
@@ -134,29 +137,10 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "verbose": {
-            "format": "[{asctime}] {levelname} {name}:{lineno} - {message}",
-            "style": "{",
-        },
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "verbose",
-        },
-    },
-    "root": {
-        "handlers": ["console"],
-        "level": "INFO",
-    },
-}
-
 TELEGRAM_BOT_NAME = env("TELEGRAM_BOT_NAME")
 TELEGRAM_LINK_TOKEN_EXPIRE = env.int("TELEGRAM_TOKEN_EXPIRE", default=600)
+
+TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN")
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -184,5 +168,48 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
+# Redis: используется и для Channels, и для Celery
+REDIS_HOST = env("REDIS_HOST", default="localhost")
+REDIS_PORT = env.int("REDIS_PORT", 6379)
+REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}"
+
+# Настройки Channels (WebSocket)
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(REDIS_HOST, REDIS_PORT)],
+        },
+    },
+}
+
+# Настройки Celery
+CELERY_BROKER_URL = f"{REDIS_URL}/9"  # очередь задач
+CELERY_RESULT_BACKEND = f"{REDIS_URL}/8"  # хранение результатов
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+
+# Включить отправку отчётов о неудачных задачах
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 минут
+
+# Настройки кэширования (для отслеживания активности пользователей)
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": f"{REDIS_URL}/2",  # База данных 2
+        "TIMEOUT": 60 * 60,  # 1 час
+        "OPTIONS": {
+            # Опциональные настройки для соединения
+        },
+    }
+}
+
+REDIS_CHAT_URL = f"{REDIS_URL}/3"
+
+# Настройки безопасности
+# в dev разрешаем всё, в prod — строго по CSRF_TRUSTED_ORIGINS
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["http://127.0.0.1"])
 CORS_ALLOW_ALL_ORIGINS = DEBUG

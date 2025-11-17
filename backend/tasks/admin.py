@@ -11,7 +11,7 @@ class TaskInline(admin.TabularInline):
 
     model = Task
     extra = 1
-    fields = ("name", "assigned_to", "complete_before", "is_completed")
+    fields = ("name", "assigned_to", "complete_before", "status")
 
     # def get_queryset(self, request):
     #     """Оптимизация для задач в инлайне."""
@@ -20,7 +20,7 @@ class TaskInline(admin.TabularInline):
 
 
 def display_task_ids(obj):
-    """Возвращает строку с первыми 3 ID задач и общим количеством для отображения."""
+    """Возвращает строку с первыми N ID задач и общим количеством для отображения."""
     task_ids = obj.tasks.values_list("id", flat=True)
     total_count = len(task_ids)
     if total_count == 0:
@@ -49,10 +49,7 @@ class ListTasksAdmin(admin.ModelAdmin):
         "task_summary",
     )
     search_fields = ("name",)
-    readonly_fields = (
-        "created_at",
-        "updated_at",
-    )
+    readonly_fields = ("updated_at",)
     list_select_related = ("owner",)
     inlines = [TaskInline]
 
@@ -82,11 +79,14 @@ class TaskAdmin(admin.ModelAdmin):
         "list_tasks",
         "assigned_to",
         "complete_before",
-        "is_completed",
+        "status",
         "updated_at",
     )
-    list_filter = ("is_completed", "list_tasks", "assigned_to")
-    list_editable = ("is_completed",)
+    list_filter = ("status", "list_tasks", "assigned_to")
+    list_editable = (
+        "status",
+        "assigned_to",
+    )
     search_fields = ("name",)
     readonly_fields = (
         "created_at",
