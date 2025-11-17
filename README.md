@@ -9,25 +9,24 @@
 ## Технологии
 
 - **Backend**: Django, Django REST Framework
-- **Аутентификация**: привязка Telegram-аккаунта через одноразовый токен
-- **Telegram-бот**: aiogram 3.x
+- **Реальное время**: Django Channels, WebSocket
+- **Фоновые уведомления**: Celery + Redis
+- **Аутентификация**: JWT
+- **Frontend**: чистый JS
+- **Telegram-бот**: aiogram
 - **Управление зависимостями**: uv
 - **Качество кода**: pre-commit
 
 ## Структура проекта
 
-```
-...
-task_manager/
-├── backend/ # Django-приложение (API)
-├── bot/ # Telegram-бот
-├── .gitignore # определяет игнорируемые файлы и каталоги для Git
-├── .pre-commit-config.yaml # Конфигурация хуков
-├── pyproject.toml # Конфигурация проекта
-└── README.md # информация о проекте
-...
-
-```
+- `task_manager/`
+  - `backend/` - Django-приложение (API)
+  - `bot/` - Telegram интерфейс
+  - `frontend/` - Веб интерфейс
+  - `.gitignore` - определяет игнорируемые файлы и каталоги для Git
+  - `.pre-commit-config.yaml` - Конфигурация хуков
+  - `pyproject.toml` - Конфигурация проекта
+  - `README.md` - информация о проекте
 
 ## Pre-commit
 

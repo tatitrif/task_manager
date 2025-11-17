@@ -64,7 +64,7 @@ repos:
     rev: "v3.4.2"
     hooks:
       - id: prettier
-        types_or: [yaml, markdown, toml]
+        types_or: [yaml, markdown, toml, javascript, html, css]
 
   - repo: https://github.com/myint/docformatter
     rev: v1.7.7
@@ -83,4 +83,3 @@ repos:
     rev: 1.8.6
     hooks:
       - id: bandit
-        args: ["-c", "pyproject.toml", "-r"]

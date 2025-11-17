@@ -96,12 +96,14 @@ async def confirm_telegram_link(code: str, message: types.Message, state: FSMCon
                     "✅ Аккаунт успешно привязан!\n\n"
                     "Теперь вы можете использовать команду /tasks, чтобы посмотреть свои задачи."
                 )
-    except asyncio.exceptions.TimeoutError:
+    except asyncio.exceptions.TimeoutError as e:
         await message.answer("⏰ Превышено время ожидания. Попробуйте позже.")
-    except aiohttp.ClientError:
+        logger.exception(f"TimeoutError: {e}")
+    except aiohttp.ClientError as e:
         await message.answer("⚠️ Ошибка подключения к серверу.")
+        logger.exception(f"ClientError: {e}")
     except Exception as e:
-        logger.exception(e)
+        logger.exception(f"Exception: {e}")
         await message.answer("❌ Внутренняя ошибка.")
 
 
