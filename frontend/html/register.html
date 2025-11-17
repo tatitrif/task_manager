@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Регистрация в системе "Управление задачами"</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f5f5f5;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+      }
+      .register-container {
+        background-color: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 400px;
+      }
+      .form-group {
+        margin-bottom: 1rem;
+      }
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: bold;
+      }
+      input[type="text"],
+      input[type="password"],
+      input[type="email"] {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+      button {
+        background-color: #28a745;
+        color: white;
+        padding: 0.75rem 1rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        width: 100%;
+      }
+      button:hover {
+        background-color: #218838;
+      }
+      .error-message {
+        color: red;
+        margin-top: 0.5rem;
+      }
+      .success-message {
+        color: green;
+        margin-top: 0.5rem;
+      }
+      .form-actions {
+        margin-top: 1.5rem;
+      }
+      .form-actions a {
+        display: block;
+        text-align: center;
+        color: #007bff;
+        text-decoration: none;
+        margin-top: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="register-container">
+      <h2>Регистрация</h2>
+      <form id="registerForm">
+        <div class="form-group">
+          <label for="regUsername">Имя пользователя:</label>
+          <input type="text" id="regUsername" name="username" required />
+        </div>
+        <div class="form-group">
+          <label for="regEmail">Email (необязательно):</label>
+          <input type="email" id="regEmail" name="email" />
+        </div>
+        <div class="form-group">
+          <label for="regPassword">Пароль:</label>
+          <input type="password" id="regPassword" name="password" required />
+        </div>
+        <div class="form-group">
+          <label for="regPasswordConfirm">Подтвердите пароль:</label>
+          <input
+            type="password"
+            id="regPasswordConfirm"
+            name="confirm_password"
+            required
+          />
+        </div>
+        <div id="registerError" class="error-message"></div>
+        <div id="registerSuccess" class="success-message"></div>
+        <button type="submit">Зарегистрироваться</button>
+      </form>
+      <div class="form-actions">
+        <a href="login.html">Войти в систему</a>
+      </div>
+    </div>
+    <script src="../js/config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+      document
+        .getElementById("registerForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const username = document.getElementById("regUsername").value;
+          const email = document.getElementById("regEmail").value;
+          const password = document.getElementById("regPassword").value;
+          const confirmPassword =
+            document.getElementById("regPasswordConfirm").value;
+          const errorDiv = document.getElementById("registerError");
+          const successDiv = document.getElementById("registerSuccess");
+
+          errorDiv.textContent = "";
+          successDiv.textContent = "";
+
+          if (password !== confirmPassword) {
+            errorDiv.textContent = "Пароли не совпадают";
+            return;
+          }
+
+          try {
+            const response = await registerUser(
+              username,
+              email,
+              password,
+              confirmPassword,
+            );
+            if (response.success) {
+              successDiv.textContent =
+                "Регистрация успешна! Перенаправление на вход...";
+              setTimeout(() => {
+                window.location.href = "login.html";
+              }, 2000);
+            } else {
+              errorDiv.textContent = response.message || "Ошибка регистрации";
+            }
+          } catch (error) {
+            errorDiv.textContent = "Ошибка при регистрации: " + error.message;
+          }
+        });
+    </script>
+  </body>
+</html>
