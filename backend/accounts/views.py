@@ -3,31 +3,34 @@
 import logging
 from datetime import timedelta
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth import logout as django_logout
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from rest_framework import generics
 from rest_framework import status
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from config.settings import TELEGRAM_BOT_NAME, TELEGRAM_LINK_TOKEN_EXPIRE
+from config.settings import TELEGRAM_BOT_NAME, TELEGRAM_LINK_TOKEN_EXPIRE, SIMPLE_JWT
 from .models import Profile
+from .serializers import RegisterSerializer
 from .utils import generate_telegram_token, verify_telegram_token
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
-SIMPLE_JWT = getattr(settings, "SIMPLE_JWT", {})
 ACCESS_TOKEN_LIFETIME = SIMPLE_JWT.get("ACCESS_TOKEN_LIFETIME", timedelta(minutes=5))
 REFRESH_TOKEN_LIFETIME = SIMPLE_JWT.get("REFRESH_TOKEN_LIFETIME", timedelta(days=1))
 
 
 class GenerateTgLinkView(APIView):
-    """Представление генерации одноразовой ссылки и токена для Telegram-аккаунта."""
+    """Одноразовая ссылка, токен для привязки Telegram-аккаунта и время его жизни."""
 
     permission_classes = [IsAuthenticated]
 
@@ -49,7 +52,7 @@ class GenerateTgLinkView(APIView):
 
 
 class ConfirmTgLinkView(APIView):
-    """Представление для подтверждения и привязки Telegram-аккаунта к пользователю."""
+    """Подтверждение и привязка Telegram-аккаунта к пользователю."""
 
     permission_classes = [AllowAny]
 
@@ -82,26 +85,84 @@ class ConfirmTgLinkView(APIView):
 
         # Генерация JWT токенов
         refresh = RefreshToken.for_user(user)
-        access = str(refresh.access_token)
-        refresh_exp = timezone.now() + REFRESH_TOKEN_LIFETIME
 
-        # Длоавление в Profile
+        # Добавление в Profile
         with transaction.atomic():
             profile, _ = Profile.objects.get_or_create(user=user)
             profile.telegram_id = telegram_id
-            profile.jwt_refresh_expires = refresh_exp
+            profile.jwt_refresh_expires = timezone.now() + REFRESH_TOKEN_LIFETIME
             profile.save(update_fields=["telegram_id", "jwt_refresh_expires"])
 
         # Логируем успешную привязку
-        logger.info(f"User {user.pk} linked Telegram ID {telegram_id}")
+        logger.info("User  %s linked Telegram ID  %s", user, telegram_id)
 
         return Response(
             {
-                "detail": "Telegram account successfully linked",
-                "access": access,
+                "message": "Telegram account successfully linked",
+                "access": str(refresh.access_token),
                 "refresh": str(refresh),
-                "access_expires_in": int(ACCESS_TOKEN_LIFETIME.total_seconds()),
-                "refresh_expires_at": refresh_exp.isoformat(),
             },
             status=status.HTTP_200_OK,
         )
+
+
+# POST /api/auth/register/
+class RegisterView(generics.CreateAPIView):
+    """Регистрация нового пользователя."""
+
+    queryset = User.objects.all()
+    serializer_class = RegisterSerializer
+    permission_classes = [AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        """Валидирует данные и создает пользователя, возвращая успешный ответ."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+
+        return Response(
+            {
+                "message": "User registered successfully",
+                "user_id": user.id,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+# POST /api/auth/logout/
+class LogoutView(APIView):
+    """Выход пользователя: сессии и JWT."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):  # noqa
+        try:
+            # Удаляем сессию
+            django_logout(request)
+
+            # Получаем refresh_token из тела запроса
+            refresh_token = request.data.get("refresh_token")
+
+            if not refresh_token:
+                return Response(
+                    {"error": "Refresh token is required"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Добавляем refresh_token в blacklist
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            return Response(
+                {"message": "Successfully logged out"}, status=status.HTTP_200_OK
+            )
+        except TokenError:
+            # Если токен уже был в blacklist или невалиден
+            return Response(
+                {"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {"error": f"An error occurred: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
