@@ -26,7 +26,7 @@ def notify_task_change(task, action, old_assigned_to_id=None):
 
     - task_updated актуализации контента
     - task_notify для assigned/unassigned сообщений
-    action: "created", "updated", "deleted", "assigned"
+    action: "created", "updated", "deleted"
     """
     recipients = set()
 
@@ -42,25 +42,14 @@ def notify_task_change(task, action, old_assigned_to_id=None):
     if hasattr(task, "list_tasks") and task.list_tasks and task.list_tasks.owner_id:
         recipients.add(task.list_tasks.owner_id)
 
-    # payload для task_updated
-    payload_updated = {
-        "type": "task_updated",
-        "action": action,
-        "task": TaskSerializer(task).data,
-    }
-
     # payload для task_notify
     payload_notify_new = {
         "type": "task_notify",
-        "action": action,
         "message": f"Вам назначена задача: {task.name}",
-        "task": TaskSerializer(task).data,
     }
     payload_notify_removed = {
         "type": "task_notify",
-        "action": action,
         "message": f"Задача '{task.name}' больше не назначена вам",
-        "task": TaskSerializer(task).data,
     }
 
     for user_id in recipients:
@@ -70,6 +59,19 @@ def notify_task_change(task, action, old_assigned_to_id=None):
 
         # task_updated всегда
         if is_online(user.id):
+            action_new = action
+            if old_assigned_to_id != task.assigned_to_id:
+                if user.id == task.assigned_to_id:
+                    action_new = "created"
+                elif user.id == old_assigned_to_id:
+                    action_new = "deleted"
+
+            # payload для task_updated
+            payload_updated = {
+                "type": "task_updated",
+                "action": action_new,
+                "task": TaskSerializer(task).data,
+            }
             ws_send_user(user.id, payload_updated)
 
         if old_assigned_to_id != task.assigned_to_id:

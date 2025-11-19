@@ -42,8 +42,6 @@ def on_task_saved(sender, instance: Task, created, **kwargs):
     action = "updated"
     if created:
         action = "created"
-    if old_assigned_to_id != instance.assigned_to_id:
-        action = "assigned"
 
     notify_task_change(instance, action, old_assigned_to_id=old_assigned_to_id)
 
@@ -61,19 +59,3 @@ def on_task_deleted(sender, instance: Task, **kwargs):
     """
     # Отправляем уведомление об удалении
     notify_task_change(instance, "deleted")
-
-    # payload_updated = {
-    #     "type": "task_updated",
-    #     "action": "deleted",
-    #     "task": TaskSerializer(instance).data,
-    # }
-    # recipients = set()
-    # if instance.assigned_to_id:
-    #     recipients.add(instance.assigned_to_id)
-    # if hasattr(instance, 'list_tasks') and instance.list_tasks and instance.list_tasks.owner_id:
-    #     recipients.add(instance.list_tasks.owner_id)
-    #
-    # for user_id in recipients:
-    #     user = User.objects.filter(id=user_id).first()
-    #     if user and is_online(user.id):
-    #         ws_send_user(user.id, payload_updated)
