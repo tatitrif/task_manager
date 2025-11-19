@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ru">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>Task Manager SPA</title>
+        <link rel="stylesheet" href="style.css" />
+    </head>
+    <body>
+        <!-- Loading -->
+        <div id="loadingView" class="view hidden">Загрузка...</div>
+
+        <!-- Login -->
+        <div id="loginView" class="view container_auth">
+            <h2>Вход</h2>
+            <input id="loginUsername" type="text" placeholder="Имя пользователя" />
+            <input id="loginPassword" type="password" placeholder="Пароль" />
+            <div class="row">
+                <button id="loginBtn" class="primary">Войти</button>
+                <button id="toRegisterBtn" class="link">Регистрация</button>
+            </div>
+        </div>
+
+        <!-- Register -->
+        <div id="registerView" class="view hidden container_auth">
+            <h2>Регистрация</h2>
+            <input id="regUsername" type="text" placeholder="Имя пользователя" />
+            <input id="regEmail" type="email" placeholder="Email (необязательно)" />
+            <input id="regPassword" type="password" placeholder="Пароль" />
+            <input id="regPasswordConfirm" type="password" placeholder="Подтвердите пароль" />
+            <div class="row">
+                <button id="registerBtn" class="primary">Зарегистрироваться</button>
+                <button id="toLoginBtn" class="link">Войти</button>
+            </div>
+        </div>
+
+        <!-- App -->
+        <div id="appView" class="view hidden container_task">
+            <div class="topbar">
+                <h2>Задачи</h2>
+                <div>
+                    <button id="logoutBtn" class="warning">Выйти</button>
+                </div>
+            </div>
+
+            <div id="tasksContainer">
+                <table class="tasks-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Название</th>
+                            <th>Описание</th>
+                            <th>Список</th>
+                            <th>Исполнитель</th>
+                            <th>Выполнить до</th>
+                            <th>Статус</th>
+                            <th>Действие</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tasksTableBody"></tbody>
+                </table>
+            </div>
+            <div id="loadingIndicator" class="hidden">Загрузка...</div>
+        </div>
+
+        <!-- Notification container -->
+        <div id="notificationContainer" class="notification-container"></div>
+
+        <!-- JS entry -->
+        <script type="module" src="js/main.js"></script>
+    </body>
+</html>

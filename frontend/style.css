@@ -1,0 +1,175 @@
+/* --- Радужная палитра (как на вашем изображении) --- */
+:root {
+    --bg: #f9fafc;
+    --card: #ffffff;
+    --accent: #065ef7;
+    --success: #28a745;
+    --warning: #fece09;
+    --danger: #dc3545;
+    --text: #212121;
+    --border: #e0e0e0;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Inter, 'Segoe UI', Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+}
+
+.view {
+    margin: 28px auto;
+    padding: 18px;
+    background: var(--card);
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+.container_auth {
+    max-width: 500px;
+}
+.container_task {
+    max-width: 980px;
+}
+.hidden {
+    display: none;
+}
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+input[type='text'],
+input[type='password'],
+input[type='email'] {
+    width: 100%;
+    padding: 10px 12px;
+    margin: 6px 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    background: var(--card);
+    color: var(--text);
+}
+
+button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+/* Основная кнопка — вход, регистрация */
+button.primary {
+    background: var(--accent);
+    color: white;
+}
+
+/* Кнопка успеха — выполнить задачу */
+button.success {
+    background: var(--warning);
+    color: #212121;
+}
+
+/* Кнопка предупреждения — выйти, отменить */
+button.warning {
+    background: var(--accent);
+    color: white; /* Тёмный текст на жёлтом */
+}
+
+/* Кнопка опасности — удалить */
+button.danger {
+    background: var(--danger);
+    color: white;
+}
+
+/* Ссылка — "Регистрация", "Войти" */
+button.link {
+    background: transparent;
+    color: var(--accent);
+    padding: 8px;
+    text-decoration: none;
+    font-weight: 400;
+    border: none;
+    cursor: pointer;
+}
+
+.row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.tasks-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+}
+
+.tasks-table thead th {
+    text-align: left;
+    padding: 10px;
+    background: #f1f5fb;
+    border-bottom: 1px solid var(--border);
+    color: #555;
+    font-weight: 500;
+}
+
+.tasks-table td {
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+    color: var(--text);
+}
+
+.tasks-table tr:hover {
+    background-color: #fafafa;
+}
+
+.notification-container {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 320px;
+    z-index: 9999;
+}
+
+.notification {
+    padding: 10px 12px;
+    border-radius: 6px;
+    color: white;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+    font-size: 13px;
+}
+
+.notification.success {
+    background: var(--success);
+}
+
+.notification.error {
+    background: var(--danger);
+}
+
+.notification.info {
+    background: var(--accent);
+}
+
+#loadingIndicator {
+    text-align: center;
+    padding: 10px;
+    color: #888;
+}

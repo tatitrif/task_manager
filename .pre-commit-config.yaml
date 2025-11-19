@@ -64,7 +64,7 @@ repos:
     rev: "v3.4.2"
     hooks:
       - id: prettier
-        types_or: [yaml, markdown, toml, javascript, html, css]
+        types_or: [yaml, markdown, toml, json]
 
   - repo: https://github.com/myint/docformatter
     rev: v1.7.7
