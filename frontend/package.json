@@ -1,0 +1,22 @@
+{
+    "name": "task-manager-frontend",
+    "version": "1.0.0",
+    "description": "SPA for task management",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "lint": "eslint . --ext .js",
+        "lint:fix": "eslint . --ext .js --fix",
+        "format": "prettier --write .",
+        "format:check": "prettier --check ."
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "dotenv": "^17.2.3",
+        "eslint": "^9.39.1",
+        "eslint-config-prettier": "^10.1.8",
+        "prettier": "^3.6.2"
+    }
+}

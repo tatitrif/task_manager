@@ -102,7 +102,7 @@ class Task(BaseModel):
         """Помечает задачу как выполненную."""
         if self.status == TaskStatus.IN_PROGRESS:
             self.status = TaskStatus.COMPLETED
-            self.save(update_fields=["status"])
+            self.save(update_fields=["status", "updated_at"])
             return True
         return False
 
@@ -114,7 +114,7 @@ class Task(BaseModel):
             and self.status not in [TaskStatus.COMPLETED, TaskStatus.OVERDUE]
         ):
             self.status = TaskStatus.OVERDUE
-            self.save(update_fields=["status"])
+            self.save(update_fields=["status", "updated_at"])
             return True
         return False
 

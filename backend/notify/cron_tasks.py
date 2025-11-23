@@ -24,8 +24,7 @@ def check_overdue_tasks():
     )
 
     for task in overdue_tasks:
-        task.status = TaskStatus.OVERDUE
-        task.save(update_fields=["status"])
+        task.mark_overdue()
 
         payload_updated = {
             "type": "task_updated",
