@@ -18,7 +18,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ("username", "email", "password", "confirm_password")
 
     def create(self, validated_data):
-        """Удаляет подтверждение пароля и создает пользователя."""
+        """Создает и возвращает нового пользователя."""
         validated_data.pop("confirm_password")
         # create_user специальный метод для создания пользователя с шифрованием пароля.
         user = User.objects.create_user(**validated_data)
